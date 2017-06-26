@@ -4,7 +4,7 @@ local restserver_xavante = {}
 local xavante = require("xavante")
 local wsapi = require("wsapi.xavante")
 
-local function start(self)
+local function start(self, callback, timeout)
    local rules = {}
    for path, _ in pairs(self.config.paths) do
       -- TODO support placeholders in paths
@@ -26,8 +26,11 @@ local function start(self)
    local ok, err = pcall(xavante.start, function()
       io.stdout:flush()
       io.stderr:flush()
-      return false
-   end, nil)
+      if callback then
+        callback()
+      end
+      return self.should_terminate
+   end, timeout)
    
    if not ok then
       return nil, err
@@ -35,8 +38,13 @@ local function start(self)
    return true
 end
 
+local function shutdown(self)
+   self.should_terminate = true
+end
+
 function restserver_xavante.extend(self)
    self.start = start
+   self.shutdown = shutdown
 end
 
 return restserver_xavante
